@@ -1,0 +1,30 @@
+html {
+    /* 全体ベースフォントを +2pt (約+2.67px) 拡大してrem基準全体をスケールアップ */
+    font-size: 18.67px;
+}
+
+body {
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    background-color: #1c1917;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-retro {
+    font-family: 'DotGothic16', monospace;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+#three-canvas-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}

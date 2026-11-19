@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>原付女子 3D - カブと、空と、私の10円。</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="w-screen h-[100dvh] m-0 p-0 overflow-hidden bg-[#1c1917]">
+
+    <!-- 画面全体に広がるスケーラブルフレーム -->
+    <div id="mobile-frame" class="relative w-full h-full bg-[#FAF6F0] flex flex-col overflow-hidden text-stone-800">
+
+        <!-- =========================================================
+             1. ヘッダー（固定高さ・上端余白スペースにアラート配置）
+        ========================================================= -->
+        <header class="bg-[#292524] text-[#FAF6F0] px-3.5 sm:px-6 pt-2 pb-2.5 shrink-0 z-20 shadow-md">
+            <div class="max-w-5xl mx-auto w-full">
+                <!-- 上段バー：左に日時・天候、中央余白に警告アラート、右にSNS・所持金・設定 -->
+                <div class="flex items-center justify-between gap-2 text-xs mb-2 min-h-[28px]">
+                    <div class="flex items-center gap-1.5 bg-stone-800/90 px-2.5 py-1 rounded-full border border-stone-700 shrink-0">
+                        <span id="ui-day" class="font-bold text-amber-300">Day 1</span>
+                        <span id="ui-time" class="font-retro text-stone-200">08:00</span>
+                        <span id="ui-weather-icon" class="text-sm">☀️</span>
+                    </div>
+
+                    <!-- 上端の余白スペースにアラートを横並び配置（高さ固定でUI境界線が上下ブレしない） -->
+                    <div id="status-alerts" class="flex-1 flex items-center justify-center gap-1.5 overflow-x-auto no-scrollbar min-w-0"></div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button id="btn-open-sns" type="button" title="カブ・スタグラムを見る" class="flex items-center gap-1 bg-pink-950/70 hover:bg-pink-900 border border-pink-700/60 px-2.5 py-0.5 rounded-full text-[13.5px] transition cursor-pointer">
+                            <span>📱</span>
+                            <span id="ui-followers" class="font-bold text-pink-300">42</span>
+                        </button>
+                        <div class="flex items-center gap-1 bg-amber-950/70 border border-amber-600/50 px-2.5 py-0.5 rounded-full">
+                            <span class="text-amber-400 text-xs">¥</span>
+                            <span id="ui-money" class="font-retro font-bold text-sm text-amber-300">3,500</span>
+                        </div>
+                        <button id="btn-toggle-debug" type="button" title="開発者テストパネル" class="w-7 h-7 rounded-full bg-stone-700 hover:bg-stone-600 flex items-center justify-center text-[13.5px] text-stone-300 transition cursor-pointer">
+                            🛠️
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5大リソース太型インラインテキストバーグラフ（グラフ4種＋右端に体調ステータス） -->
+                <div class="grid grid-cols-5 gap-1.5 sm:gap-2.5 text-[12px] sm:text-xs">
+                    <!-- 燃料バー -->
+                    <div class="relative h-7 sm:h-8 bg-stone-800 rounded-xl overflow-hidden border border-stone-700/90 shadow-inner">
+                        <div id="bar-gas" class="h-full bg-amber-500 transition-all duration-300" style="width: 55%;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center px-1 font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] whitespace-nowrap">
+                            <span>燃料</span>
+                        </div>
+                    </div>
+
+                    <!-- 空腹バー -->
+                    <div class="relative h-7 sm:h-8 bg-stone-800 rounded-xl overflow-hidden border border-stone-700/90 shadow-inner">
+                        <div id="bar-hunger" class="h-full bg-orange-500 transition-all duration-300" style="width: 65%;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center px-1 font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] whitespace-nowrap">
+                            <span>空腹</span>
+                        </div>
+                    </div>
+
+                    <!-- 清潔バー -->
+                    <div class="relative h-7 sm:h-8 bg-stone-800 rounded-xl overflow-hidden border border-stone-700/90 shadow-inner">
+                        <div id="bar-clean" class="h-full bg-sky-500 transition-all duration-300" style="width: 50%;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center px-1 font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] whitespace-nowrap">
+                            <span>清潔</span>
+                        </div>
+                    </div>
+
+                    <!-- 心境バー -->
+                    <div class="relative h-7 sm:h-8 bg-stone-800 rounded-xl overflow-hidden border border-stone-700/90 shadow-inner">
+                        <div id="bar-mental" class="h-full bg-indigo-500 transition-all duration-300" style="width: 30%;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center px-1 font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] whitespace-nowrap">
+                            <span>心境</span>
+                        </div>
+                    </div>
+
+                    <!-- 体調ステータスバッジ（グラフではないため右端に配置・RPG風状態異常表示） -->
+                    <div id="card-condition" class="relative h-7 sm:h-8 bg-stone-800 rounded-xl overflow-hidden border border-emerald-500/50 shadow-inner transition-colors">
+                        <div id="bar-condition" class="h-full bg-emerald-600/85 transition-all duration-300" style="width: 100%;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center px-1 font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] whitespace-nowrap truncate">
+                            <span id="val-condition">✨良好</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- =========================================================
+             2. Three.js 3Dビジュアルビューポート
+        ========================================================= -->
+        <div id="visual-viewport" class="relative flex-1 w-full bg-sky-400 overflow-hidden select-none touch-none">
+            <!-- Three.js 描画キャンバスコンテナ -->
+            <div id="three-canvas-container" class="absolute inset-0 w-full h-full"></div>
+
+            <!-- 心境低下時のビネット効果オーバーレイ（周囲が暗く狭まる演出） -->
+            <div id="mental-vignette-overlay" class="pointer-events-none absolute inset-0 transition-opacity duration-500" style="z-index: 8; opacity: 0.25; background: radial-gradient(circle at center, rgba(12, 10, 9, 0) 48%, rgba(12, 10, 9, 0.85) 100%);"></div>
+
+            <!-- スピードメーターHUD（右上に配置） -->
+            <div class="absolute top-3 left-3 right-3 sm:left-6 sm:right-6 max-w-5xl mx-auto flex justify-end items-start pointer-events-none z-10">
+                <!-- 30km/h アナログ風スピードメーター -->
+                <div class="bg-stone-900/85 backdrop-blur-sm text-white w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-stone-600 flex flex-col items-center justify-center shadow-md">
+                    <span id="ui-speed" class="font-retro text-lg sm:text-2xl font-bold leading-none text-amber-300">30</span>
+                    <span class="text-[11.5px] sm:text-[12.5px] text-stone-400 mt-0.5">km/h</span>
+                </div>
+            </div>
+
+            <!-- 3D空間上のロードサイドイベントアイコン（停車ゾーン接近インジケーター） -->
+            <div id="discovery-badge-container" class="hidden absolute z-30 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center">
+                <div id="disc-badge-ring" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/95 text-2xl sm:text-3xl shadow-xl border-[3px] border-amber-500 flex items-center justify-center transition-all duration-150 ring-4 ring-amber-400/40">
+                    <span id="disc-icon">⛽</span>
+                </div>
+                <span id="disc-zone-hint" class="hidden mt-1 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[12.5px] font-extrabold shadow whitespace-nowrap animate-bounce">
+                    今だ！下スワイプで停止！
+                </span>
+            </div>
+
+            <!-- 漫画風モノローグ吹き出し（キャラ頭部の斜め上に3D追従＆一定時間で自動消去） -->
+            <div id="monologue-anchor" class="pointer-events-none absolute z-20 transition-opacity duration-300 opacity-100" style="left: 50%; top: 45%; transform: translate(12px, -100%);">
+                <div id="monologue-box" class="relative bg-white/95 backdrop-blur-sm text-stone-800 px-3.5 py-2 rounded-2xl rounded-bl-xs shadow-lg border-2 border-stone-800 text-[13.5px] sm:text-xs font-bold max-w-[235px] sm:max-w-[290px] leading-snug">
+                    <span id="ui-monologue">「さあ、行けるところまで走ってみよう。」</span>
+                    <!-- 漫画風の吹き出ししっぽ（左下方向：キャラ頭部を指す） -->
+                    <div class="absolute -bottom-2 left-2.5 w-3 h-3 bg-white border-r-2 border-b-2 border-stone-800 rotate-45"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             3. フッター運転ステータス＆操作ガイドバー（スワイプ専用）
+        ========================================================= -->
+        <footer class="bg-[#292524] text-[#FAF6F0] px-4 sm:px-6 py-2.5 shrink-0 z-20 border-t border-stone-700/80">
+            <div class="max-w-5xl mx-auto w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
+                <div id="drive-status-label" class="text-xs sm:text-sm font-bold text-emerald-300">移動状態: 自動走行中</div>
+                <div class="text-[12.5px] sm:text-xs text-stone-400">左右スワイプで車線移動（指を離すと進行方向へまっすぐ直進）／ 上下で発進・減速停止</div>
+            </div>
+        </footer>
+
+        <!-- =========================================================
+             イベント実行時の暗転トランジションオーバーレイ
+        ========================================================= -->
+        <div id="event-blackout-overlay" class="hidden pointer-events-none absolute inset-0 bg-stone-950 flex flex-col items-center justify-center p-6 text-center opacity-0 transition-opacity duration-300" style="z-index: 45;">
+            <div id="blackout-icon" class="text-5xl mb-3 animate-pulse">⛽</div>
+            <div id="blackout-title" class="text-base sm:text-lg font-extrabold text-amber-300 tracking-wide">イベント実行中...</div>
+            <p id="blackout-sub" class="text-xs text-stone-300 mt-1.5 max-w-xs">ひと息ついて、また走り出そう。</p>
+        </div>
+
+        <!-- =========================================================
+             対向車衝突時の爆発イラスト拡大＆暗転オーバーレイ
+        ========================================================= -->
+        <div id="crash-explosion-overlay" class="hidden pointer-events-none absolute inset-0 flex flex-col items-center justify-center overflow-hidden transition-colors duration-500 bg-amber-500/0" style="z-index: 48;">
+            <div id="crash-flash-bg" class="absolute inset-0 bg-white opacity-0 transition-opacity duration-150"></div>
+            <div id="crash-explosion-graphic" class="relative flex items-center justify-center transform scale-0 transition-transform duration-500 ease-out">
+                <svg viewBox="0 0 320 320" class="w-80 h-80 sm:w-[460px] sm:h-[460px] drop-shadow-[0_0_45px_rgba(239,68,68,0.95)]">
+                    <polygon points="160,6 196,62 264,26 254,96 314,114 268,166 312,226 244,234 252,302 190,264 160,316 128,264 66,302 76,234 8,226 52,166 6,114 66,96 56,26 124,62" fill="#dc2626" stroke="#7f1d1d" stroke-width="6" stroke-linejoin="round"/>
+                    <polygon points="160,32 188,80 242,54 232,110 286,126 246,168 282,214 226,220 232,274 182,244 160,288 136,244 86,274 94,220 38,214 74,168 34,126 88,110 78,54 132,80" fill="#f97316"/>
+                    <polygon points="160,64 180,104 222,86 212,126 252,140 222,168 248,200 206,204 210,244 174,222 160,256 144,222 108,244 114,204 72,200 98,168 68,140 108,126 98,86 140,104" fill="#facc15"/>
+                    <circle cx="160" cy="162" r="46" fill="#fef9c3"/>
+                    <circle cx="52" cy="56" r="7" fill="#fef08a"/>
+                    <circle cx="272" cy="64" r="8" fill="#fdba74"/>
+                    <circle cx="44" cy="264" r="7" fill="#fca5a5"/>
+                    <circle cx="274" cy="262" r="8" fill="#fef08a"/>
+                    <text x="160" y="172" text-anchor="middle" font-size="38" font-weight="900" fill="#991b1b" font-family="'M PLUS Rounded 1c', sans-serif" letter-spacing="2">CRASH!!</text>
+                </svg>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             SNSモーダル（カブ・スタグラム）
+        ========================================================= -->
+        <div id="sns-modal" class="hidden absolute inset-0 bg-stone-950/75 backdrop-blur-xs z-40 flex items-center justify-center p-4">
+            <div class="bg-[#FAF6F0] w-full max-w-[390px] rounded-3xl p-4 shadow-2xl border border-stone-300 space-y-3">
+                <div class="flex items-center justify-between border-b border-stone-200 pb-2">
+                    <div class="flex items-center gap-1.5 font-bold text-sm text-pink-700">
+                        <span>📱</span> カブ・スタグラム
+                    </div>
+                    <button id="btn-close-sns" type="button" class="w-7 h-7 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-600 text-xs font-bold flex items-center justify-center cursor-pointer">✕</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-2xl border border-stone-200 text-center text-xs">
+                    <div>
+                        <div class="text-[12.5px] text-stone-400">フォロワー</div>
+                        <div id="modal-followers" class="font-bold text-pink-600 text-sm">42</div>
+                    </div>
+                    <div>
+                        <div class="text-[12.5px] text-stone-400">総走行距離</div>
+                        <div id="modal-dist" class="font-bold text-emerald-700 text-sm">0.0 km</div>
+                    </div>
+                    <div>
+                        <div class="text-[12.5px] text-stone-400">投稿数</div>
+                        <div id="modal-posts-count" class="font-bold text-stone-700 text-sm">0</div>
+                    </div>
+                </div>
+                <div id="sns-feed-list" class="max-h-52 overflow-y-auto space-y-2 text-xs no-scrollbar"></div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             開発者デバッグドロワー
+        ========================================================= -->
+        <div id="debug-drawer" class="hidden absolute top-28 right-3 w-72 bg-stone-900/95 text-stone-100 rounded-2xl p-3.5 shadow-2xl border border-stone-700 z-40 space-y-2 text-xs">
+            <div class="flex items-center justify-between border-b border-stone-700 pb-1.5">
+                <span class="font-bold text-amber-300">🛠️ 開発者テストパネル</span>
+                <button id="btn-close-debug" type="button" class="text-stone-400 hover:text-white px-1.5 cursor-pointer">✕</button>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 pt-1">
+                <button type="button" data-debug-encounter="gas" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">⛽ 給油出現</button>
+                <button type="button" data-debug-encounter="food" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">🍜 食堂出現</button>
+                <button type="button" data-debug-encounter="spot" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">📸 絶景出現</button>
+                <button type="button" data-debug-encounter="job" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">📦 バイト出現</button>
+                <button type="button" data-debug-encounter="clean" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">♨️ 温泉出現</button>
+                <button type="button" data-debug-encounter="stay" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">🛏️ 宿泊出現</button>
+                <button id="btn-debug-weather" type="button" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">☔ 天候切替</button>
+                <button id="btn-debug-oncoming" type="button" class="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-left cursor-pointer">🚗 対向車出現</button>
+            </div>
+            <div class="space-y-1.5 pt-1 border-t border-stone-800">
+                <button id="btn-debug-money" type="button" class="w-full p-2 rounded-xl bg-amber-900/60 hover:bg-amber-800/70 text-amber-200 font-bold text-left cursor-pointer">💴 所持金 +3,000円</button>
+                <button id="btn-debug-cold" type="button" class="w-full p-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900/80 text-cyan-200 font-bold text-left cursor-pointer">🤧 状態異常：風邪 切替</button>
+                <button id="btn-debug-sleepy" type="button" class="w-full p-2 rounded-xl bg-purple-950/80 hover:bg-purple-900/80 text-purple-200 font-bold text-left cursor-pointer">🥱 状態異常：寝不足 切替</button>
+                <button id="btn-debug-lowgas" type="button" class="w-full p-2 rounded-xl bg-red-950/80 hover:bg-red-900/80 text-red-200 font-bold text-left cursor-pointer">🪫 燃料を限界に設定</button>
+                <button id="btn-debug-lowmental" type="button" class="w-full p-2 rounded-xl bg-indigo-950/80 hover:bg-indigo-900/80 text-indigo-200 font-bold text-left cursor-pointer">💔 心境を限界に設定</button>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             タイトル画面（起動時のオープニング＆主人公モノローグ）
+        ========================================================= -->
+        <div id="title-screen-modal" class="absolute inset-0 bg-gradient-to-b from-stone-900/95 via-stone-900/90 to-amber-950/95 backdrop-blur-sm z-50 flex flex-col items-center justify-between p-6 text-center text-[#FAF6F0]">
+            <div class="mt-6 space-y-2">
+                <div class="inline-flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[13.5px] font-bold px-3.5 py-1 rounded-full">
+                    <span>🛵</span> Three.js 3D ロードトリップ・サバイバル
+                </div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-white drop-shadow-md pt-1">
+                    原付女子 3D
+                </h1>
+                <p class="text-sm font-bold text-amber-300 tracking-wide">
+                    ― カブと、空と、私の10円。 ―
+                </p>
+            </div>
+
+            <div class="w-full max-w-[380px] bg-white/10 backdrop-blur-md border border-white/15 rounded-3xl p-5 shadow-2xl space-y-3 text-left">
+                <div class="flex items-center gap-2 text-xs font-bold text-rose-300">
+                    <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+                    <span>アカリ（21歳・所持金 3,500円）</span>
+                </div>
+                <p class="text-xs sm:text-sm text-stone-100 leading-relaxed font-medium">
+                    「……バイトもクビ、彼氏も親友に取られた。<br>
+                    部屋に閉じこもって泣くくらいなら、<br>
+                    もう遠くへ行くしかないよね。」
+                </p>
+                <p class="text-[13.5px] text-stone-300 leading-relaxed border-t border-white/10 pt-2.5">
+                    相棒のスーパーカブ50にまたがり、行き先も決めないまま3Dの国道へ飛び出した――。
+                </p>
+            </div>
+
+            <div class="w-full max-w-[380px] mb-5 space-y-2.5">
+                <button id="btn-start-journey" type="button" class="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-stone-950 font-extrabold text-base shadow-xl shadow-amber-500/25 transition flex items-center justify-center gap-2 cursor-pointer">
+                    <span>🔑</span> エンジンをかけて旅に出る
+                </button>
+                <div class="text-[12.5px] text-stone-400">
+                    ※ 左右スワイプでバイクを傾けて車線変更！（操作しない時はまっすぐ直進）
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             ゲームオーバーモーダル
+        ========================================================= -->
+        <div id="gameover-modal" class="hidden absolute inset-0 bg-stone-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-[#FAF6F0] w-full max-w-[390px] rounded-3xl p-5 shadow-2xl border-2 border-indigo-400/60 text-center space-y-4">
+                <div id="gameover-icon" class="w-16 h-16 mx-auto rounded-full bg-indigo-100 border-2 border-indigo-300 flex items-center justify-center text-3xl shadow-inner">
+                    💔
+                </div>
+                <div class="space-y-1.5">
+                    <div class="text-[13.5px] font-bold tracking-wider text-indigo-600 uppercase">GAME OVER</div>
+                    <h2 id="gameover-title" class="text-lg font-extrabold text-stone-800">心が折れて、旅をやめた</h2>
+                    <p id="gameover-reason" class="text-xs text-stone-600 leading-relaxed pt-1">
+                        「……もう無理。私、いったい何やってるんだろう……帰ろう。」<br>
+                        限界を迎えたアカリはカブのエンジンを切り、帰路につくことにした。
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-3 border border-stone-200 grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                        <div class="text-[12.5px] text-stone-400">旅した日数</div>
+                        <div id="go-days" class="font-bold text-stone-800 text-sm">Day 1</div>
+                    </div>
+                    <div>
+                        <div class="text-[12.5px] text-stone-400">総走行距離</div>
+                        <div id="go-dist" class="font-bold text-emerald-700 text-sm">0.0 km</div>
+                    </div>
+                    <div>
+                        <div class="text-[12.5px] text-stone-400">フォロワー</div>
+                        <div id="go-followers" class="font-bold text-pink-600 text-sm">42</div>
+                    </div>
+                </div>
+
+                <button id="btn-restart-game" type="button" class="w-full py-3 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-sm shadow-lg transition cursor-pointer">
+                    🛵 もう一度、旅に出る
+                </button>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             トースト通知
+        ========================================================= -->
+        <div id="toast-message" class="pointer-events-none fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-xl border border-stone-700 opacity-0 transition-opacity duration-300 max-w-[400px] text-center">
+            通知メッセージ
+        </div>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
